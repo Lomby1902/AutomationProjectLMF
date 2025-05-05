@@ -1,54 +1,45 @@
-#include <WiFi.h>
+#include <SPI.h>
+#include <WiFiNINA.h>
 
-//Wi-Fi credntials
-const char* ssid     = "GIOVANNI-XPS 4255";
-const char* password = "zD9*9395";
+char ssid[] = "GIOVANNI-XPS";
+char pass[] = "zD9*9395";
 
-//Server IP
-//Arduino Port
-const char* serverIP = "192.168.1.10";  
-const uint16_t serverPort = 5001;       
-
-uint8_t limit = 0;
+char server[] = "192.168.137.1";  // IP of PC acting as bridge
+int port = 5001;
 
 WiFiClient client;
 
 void setup() {
-  Serial.begin(115200);
-  delay(100);
+  pinMode(13,OUTPUT);
+  Serial.begin(9600);
+  while (!Serial);
 
-  Serial.print("Connection to WiFi ...");
-  WiFi.begin(ssid, password);
-
+  int status = WiFi.begin(ssid, pass);
+  Serial.print("Connecting");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
 
-  Serial.println("\nConnected to WiFi. IP: " + WiFi.localIP().toString());
+  Serial.println("\nConnected to WiFi");
 
-  // Connessione al server TCP
-  if (client.connect(serverIP, serverPort)) {
-    Serial.println("Connected to TCP server");
+  if (client.connect(server, port)) {
+    Serial.println("Connected to server!");
+    client.println("Hello from Arduino");
   } else {
-    Serial.println("Failed to connect to server");
+    Serial.println("Connection to server failed");
   }
 }
 
 void loop() {
   if (client.connected()) {
-    if(limit){
-      client.println("Reached final position, sending trigger");
-      client.write(0b1);   
-    }
-    while (client.available()) {
-      String risposta = client.readStringUntil('\n');
-      Serial.println("Detected object start moving cart");
-    }
+    if (client.available()) {
+        Serial.println("Starting cart");
+        client.read();
+        digitalWrite(LED_BUILTIN,HIGH);
+}
   } else {
-    Serial.println("Connessione lost. Re-trying...");
-    if (client.connect(serverIP, serverPort)) {
-      Serial.println("Re-connected!");
-    }
+    Serial.println("Disconnected. Reconnecting...");
+    client.connect(server, port);
   }
 }
