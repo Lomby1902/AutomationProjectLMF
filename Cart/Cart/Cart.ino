@@ -2,14 +2,27 @@
 #include <WiFiNINA.h>
 #include <Servo.h>
 
-char ssid[] = "GIOVANNI-XPS";
-char pass[] = "zD9*9395";
+// WiFi credentials
+char ssid[] = "Zancle E-Drive";
+char pass[] = "7EC446D837";
 
+// Server info
+char server[] = "192.168.209.122";  // IP of PC/server
+int port = 5001;
+
+WiFiClient client;
+
+// Servo motors
+Servo motor1;
+Servo motor2;
+
+// Sensor pins
 #define TRG_PIN_1 7
 #define TRG_PIN_2 8
 #define ECHO_PIN_1 2
 #define ECHO_PIN_2 3
 
+// Flags and timing for sensors
 volatile uint8_t trig_flag_1 = 0;
 volatile uint8_t echo_flag_1 = 0;
 volatile uint8_t trig_flag_2 = 0;
@@ -18,68 +31,77 @@ volatile unsigned long echoStart_1 = 0;
 volatile unsigned long echoEnd_1 = 0;
 volatile unsigned long echoStart_2 = 0;
 volatile unsigned long echoEnd_2 = 0;
-float distance_1 = 0;
-float distance_2 = 0;
+
 unsigned long duration_1 = 0;
 unsigned long duration_2 = 0;
+float distance_1 = 0;
+float distance_2 = 0;
 
-Servo myservo;  // create servo object to control a servo
-int pos = 0;    // variable to store the servo position
+// State machine for cart behavior
+enum CartState {
+  WAIT_FOR_START,
+  MOVING_TO_TARGET,
+  AT_TARGET,
+  WAITING_FOR_OBJECT,
+  RETURNING,
+  IDLE
+};
 
+CartState cartState = WAIT_FOR_START;
+unsigned long returnStart = 0; // For timing return movement
 
-void echo1(){
-  switch(digitalRead(ECHO_PIN_1)){
+// Interrupt Service Routines
+void echo1() {
+  switch (digitalRead(ECHO_PIN_1)) {
     case HIGH:
       echoStart_1 = micros();
       break;
     case LOW:
       echoEnd_1 = micros();
-      //set falling edge flag
-       echo_flag_1 = 1;
+      echo_flag_1 = 1;
   }
 }
 
-
-void echo2(){
-  switch(digitalRead(ECHO_PIN_2)){
+void echo2() {
+  switch (digitalRead(ECHO_PIN_2)) {
     case HIGH:
       echoStart_2 = micros();
       break;
     case LOW:
       echoEnd_2 = micros();
-      //set falling edge flag
-       echo_flag_2 = 1;
+      echo_flag_2 = 1;
   }
 }
-  
-
-
-
-char server[] = "192.168.137.1";  // IP of PC acting as bridge
-int port = 5001;
-
-WiFiClient client;
 
 void setup() {
+  Serial.begin(9600);
+  while (!Serial);
+
+  // Motor pins
+  motor1.attach(5);
+  motor2.attach(6);
+
+  // Sensor pin modes
   pinMode(TRG_PIN_1, OUTPUT);
   pinMode(TRG_PIN_2, OUTPUT);
   pinMode(ECHO_PIN_1, INPUT);
   pinMode(ECHO_PIN_2, INPUT);
-  
-  Serial.begin(9600);
 
-  
+  // Built-in LED
+  pinMode(LED_BUILTIN, OUTPUT);
+  digitalWrite(LED_BUILTIN, LOW);
 
-  
-  while (!Serial);
+  // Attach interrupts
+  attachInterrupt(digitalPinToInterrupt(ECHO_PIN_1), echo1, CHANGE);
+  attachInterrupt(digitalPinToInterrupt(ECHO_PIN_2), echo2, CHANGE);
 
+  // WiFi connection
   int status = WiFi.begin(ssid, pass);
   Serial.print("Connecting");
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
   }
-
   Serial.println("\nConnected to WiFi");
 
   if (client.connect(server, port)) {
@@ -88,81 +110,125 @@ void setup() {
     Serial.println("Connection to server failed");
   }
 
-  myservo.attach(9);  // attaches the servo on pin 9 to the servo object
-    attachInterrupt(digitalPinToInterrupt(ECHO_PIN_1), echo1, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ECHO_PIN_2), echo2, CHANGE);
+  stopMotors(); // Ensure motors are stopped at startup
 }
 
 void loop() {
-  if (client.connected()) {
-    
-    //Sensor1: If a pulse was not send, send it
-    if(!trig_flag_1){
-        digitalWrite(TRG_PIN_1, LOW);
-        delayMicroseconds(2);
-    
-        digitalWrite(TRG_PIN_1, HIGH);
-        delayMicroseconds(10);
-        digitalWrite(TRG_PIN_1, LOW);
-        trig_flag_1 = 1;
-    }   
-    //Sensor1: If echo has been received
-    if (echo_flag_1){
-        duration_1 = echoEnd_1 - echoStart_1;
-        //s = v*t, sound speed is 343 m/s, wave reaches object and comes back
-        distance_1 = .0343*(duration_1/2);
-        if(distance_1 < 5){
-            Serial.println("Arrived to target");
-            client.write("Target");
-           
-        }
-         echo_flag_1 = 0;
-         trig_flag_1 = 0;
-    }  
-
-
-    //Sensor2: If a pulse was not send, send it
-    if(!trig_flag_2){
-        digitalWrite(TRG_PIN_2, LOW);
-        delayMicroseconds(2);
-    
-        digitalWrite(TRG_PIN_2, HIGH);
-        delayMicroseconds(10);
-        digitalWrite(TRG_PIN_2, LOW);
-        trig_flag_2 = 1;
-    }   
-    //Sensor2: If echo has been received
-    if (echo_flag_2){
-        duration_2 = echoEnd_2 - echoStart_2;
-        //s = v*t, sound speed is 343 m/s, wave reaches object and comes back
-        distance_2 = .0343*(duration_2/2);
-        if(distance_2 < 5){
-            Serial.println("Object placed");
-           
-        }
-         echo_flag_2 = 0;
-         trig_flag_2 = 0;
-    }  
-
-
-   
-   if (client.available()) {
-        Serial.println("Starting cart");
-        client.read();
-        digitalWrite(LED_BUILTIN,HIGH);
-        for (pos = 0; pos <= 180; pos += 1) { // goes from 0 degrees to 180 degrees
-          // in steps of 1 degree
-          myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15);                       // waits 15 ms for the servo to reach the position
-        }
-        for (pos = 180; pos >= 0; pos -= 1) { // goes from 180 degrees to 0 degrees
-          myservo.write(pos);              // tell servo to go to position in variable 'pos'
-          delay(15);                       // waits 15 ms for the servo to reach the position
-        }
-    }
-  } else {
+  // Reconnect if client disconnects
+  if (!client.connected()) {
     Serial.println("Disconnected. Reconnecting...");
     client.connect(server, port);
+    delay(500);
+    return;
   }
-  delay(10);
+
+  // Trigger ultrasonic sensors
+  if (!trig_flag_1) {
+    digitalWrite(TRG_PIN_1, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRG_PIN_1, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRG_PIN_1, LOW);
+    trig_flag_1 = 1;
+  }
+
+  if (!trig_flag_2) {
+    digitalWrite(TRG_PIN_2, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRG_PIN_2, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRG_PIN_2, LOW);
+    trig_flag_2 = 1;
+  }
+
+  // Process echo sensor 1 (target)
+  if (echo_flag_1) {
+    duration_1 = echoEnd_1 - echoStart_1;
+    distance_1 = 0.0343 * (duration_1 / 2);
+    echo_flag_1 = 0;
+    trig_flag_1 = 0;
+  }
+
+  // Process echo sensor 2 (object)
+  if (echo_flag_2) {
+    duration_2 = echoEnd_2 - echoStart_2;
+    distance_2 = 0.0343 * (duration_2 / 2);
+    echo_flag_2 = 0;
+    trig_flag_2 = 0;
+  }
+
+  // Handle server message (start signal)
+  if (client.available()) {
+    Serial.println("Start signal received");
+    client.read();  // Clear message
+    digitalWrite(LED_BUILTIN, HIGH);
+    cartState = MOVING_TO_TARGET;
+  }
+
+  // State machine logic
+  switch (cartState) {
+    case WAIT_FOR_START:
+      stopMotors();
+      break;
+
+    case MOVING_TO_TARGET:
+      moveForward();
+      if (distance_1 < 5) {
+        Serial.println("Arrived to target");
+        client.write("Target");
+        stopMotors();
+        cartState = AT_TARGET;
+      }
+      break;
+
+    case AT_TARGET:
+      Serial.println("Waiting for object...");
+      cartState = WAITING_FOR_OBJECT;
+      break;
+
+    case WAITING_FOR_OBJECT:
+      if (distance_2 < 5) {
+        Serial.println("Object placed, returning");
+        delay(1000);
+        moveBackward();
+        returnStart = millis();  // Start return timer
+        cartState = RETURNING;
+      }
+      break;
+
+    case RETURNING:
+      if (millis() - returnStart >= 2000) {
+        Serial.println("Return complete. Stopping.");
+        stopMotors();
+        digitalWrite(LED_BUILTIN, LOW);
+        cartState = IDLE;
+      }
+      break;
+
+    case IDLE:
+      // Reset to initial state
+      cartState = WAIT_FOR_START;
+      break;
+  }
+
+  delay(100); // Reduce loop frequency
+}
+
+// -----------------
+// Helper Functions
+// -----------------
+
+void moveForward() {
+  motor1.write(70);   // Calibrate this if needed
+  motor2.write(110);
+}
+
+void moveBackward() {
+  motor1.write(110);  // Calibrate this if needed
+  motor2.write(70);
+}
+
+void stopMotors() {
+  motor1.write(90);   // Use calibrated stop value if necessary
+  motor2.write(90);
 }
