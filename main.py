@@ -28,7 +28,7 @@ def handle_arduino(client_socket, addr, dispositivo):
         #if received data from Arduino this means the cart is ready, so set arrived_to_target flag
         if data.decode()=="Target" and not arrived_to_target:
             print("Cart Ready!")
-            arrived_to_target = 1
+            arrived_to_target = 1 
 
 
 
