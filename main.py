@@ -17,50 +17,41 @@ start_cart = 0
 def handle_arduino(client_socket, addr, dispositivo):
     global start_cart, arrived_to_target
     print(f"[{dispositivo}] Connection from {addr}")
-    try:
-        while True:
-                #if an objet was detected send command to arduino to start cart
-                if start_cart:
-                    print("Starting cart")
-                    client_socket.sendall(bytes(1))
-                    start_cart = 0       
-                else:
-                    data = client_socket.recv(6)      
-                    #if received data from Arduino this means the cart is ready, so set arrived_to_target flag
-                    if data.decode()=="Target" and not arrived_to_target:
-                        print("Cart Ready!")
-                        arrived_to_target = 1
-    except Exception as e:
-        print(f"[{dispositivo}] Errore: {e}")
-    finally:
-        client_socket.close()
-        print(f"[{dispositivo}] Connection closed from{addr}")
+    while True:
+        #if an objet was detected send command to arduino to start cart
+        if start_cart:
+            print("Starting cart")
+            client_socket.sendall(bytes(1))
+            start_cart = 0   
+    
+        data = client_socket.recv(6)      
+        #if received data from Arduino this means the cart is ready, so set arrived_to_target flag
+        if data.decode()=="Target" and not arrived_to_target:
+            print("Cart Ready!")
+            arrived_to_target = 1
 
 
 
 
 def handle_plc(client_socket, addr, dispositivo):
-    global start_cart
+    global start_cart, arrived_to_target
     print(f"[{dispositivo}] Connection from {addr}")
-    try:
-        while True:
-                #if the cart arrived to target, send trigger to PLC to start the arm
-                if arrived_to_target:
-                    print("Starting arm")
-                    client_socket.sendall(bytes(1))
-                else:
-                    data = client_socket.recv(1024)
-                    if data and not start_cart:
-                        #If received data from PLC, this means an object is detected, so set start_cart flag
-                        print("Object detected")
-                        start_cart=1
+    while True:
             
+            #if the cart arrived to target, send trigger to PLC to start the arm
+            if arrived_to_target:
+                print("Starting arm")
+                data = bytes([1])
+                client_socket.sendall(data)
+                arrived_to_target = 0
+            else:
+                data = client_socket.recv(1)
+                data = data[0] #convert to int
+                if data==1 and not start_cart:
+                    #If received data from PLC, this means an object is detected, so set start_cart flag
+                    print("Object detected")
+                    start_cart=1
 
-    except Exception as e:
-        print(f"[{dispositivo}] Error: {e}")
-    finally:
-        client_socket.close()
-        print(f"[{dispositivo}] Connection closed from {addr}")
 
 
 

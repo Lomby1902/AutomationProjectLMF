@@ -37,11 +37,15 @@ unsigned long duration_2 = 0;
 float distance_1 = 0;
 float distance_2 = 0;
 
+
+unsigned long lastTrigTime_1 = 0;
+unsigned long lastTrigTime_2 = 0;
+const unsigned long echoTimeout = 100;  // ms
+
 // State machine for cart behavior
 enum CartState {
   WAIT_FOR_START,
   MOVING_TO_TARGET,
-  AT_TARGET,
   WAITING_FOR_OBJECT,
   RETURNING,
   IDLE
@@ -101,6 +105,7 @@ void setup() {
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
+    WiFi.begin(ssid, pass);
   }
   Serial.println("\nConnected to WiFi");
 
@@ -122,40 +127,6 @@ void loop() {
     return;
   }
 
-  // Trigger ultrasonic sensors
-  if (!trig_flag_1) {
-    digitalWrite(TRG_PIN_1, LOW);
-    delayMicroseconds(2);
-    digitalWrite(TRG_PIN_1, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(TRG_PIN_1, LOW);
-    trig_flag_1 = 1;
-  }
-
-  if (!trig_flag_2) {
-    digitalWrite(TRG_PIN_2, LOW);
-    delayMicroseconds(2);
-    digitalWrite(TRG_PIN_2, HIGH);
-    delayMicroseconds(10);
-    digitalWrite(TRG_PIN_2, LOW);
-    trig_flag_2 = 1;
-  }
-
-  // Process echo sensor 1 (target)
-  if (echo_flag_1) {
-    duration_1 = echoEnd_1 - echoStart_1;
-    distance_1 = 0.0343 * (duration_1 / 2);
-    echo_flag_1 = 0;
-    trig_flag_1 = 0;
-  }
-
-  // Process echo sensor 2 (object)
-  if (echo_flag_2) {
-    duration_2 = echoEnd_2 - echoStart_2;
-    distance_2 = 0.0343 * (duration_2 / 2);
-    echo_flag_2 = 0;
-    trig_flag_2 = 0;
-  }
 
   // Handle server message (start signal)
   if (client.available()) {
@@ -165,6 +136,7 @@ void loop() {
     cartState = MOVING_TO_TARGET;
   }
 
+  Serial.println(cartState);
   // State machine logic
   switch (cartState) {
     case WAIT_FOR_START:
@@ -173,23 +145,73 @@ void loop() {
 
     case MOVING_TO_TARGET:
       moveForward();
-      if (distance_1 < 5) {
-        Serial.println("Arrived to target");
-        client.write("Target");
-        stopMotors();
-        cartState = AT_TARGET;
+      // Trigger ultrasonic sensors
+      if (!trig_flag_1) {
+        digitalWrite(TRG_PIN_1, LOW);
+        delayMicroseconds(2);
+        digitalWrite(TRG_PIN_1, HIGH);
+        delayMicroseconds(10);
+        digitalWrite(TRG_PIN_1, LOW);
+        trig_flag_1 = 1;
+        lastTrigTime_1 = millis();
       }
-      break;
 
-    case AT_TARGET:
-      Serial.println("Waiting for object...");
-      cartState = WAITING_FOR_OBJECT;
+      // Process echo sensor 1 (target)
+      if (echo_flag_1) {
+        Serial.println("Echo1");
+        duration_1 = echoEnd_1 - echoStart_1;
+        distance_1 = 0.0343 * (duration_1 / 2);
+        echo_flag_1 = 0;
+        trig_flag_1 = 0;
+      }
+
+      // Timeout for sensor 1
+      if (trig_flag_1 && (millis() - lastTrigTime_1 >= echoTimeout)) {
+        Serial.println("Sensor1 timeout");
+        trig_flag_1 = 0;
+        echo_flag_1 = 0;
+      }
+
+
+      if (distance_1 < 5) {
+          Serial.println("Arrived to target");
+          client.write("Target");
+          stopMotors();
+          cartState = WAITING_FOR_OBJECT;
+        }
       break;
 
     case WAITING_FOR_OBJECT:
+      if (!trig_flag_2) {
+        digitalWrite(TRG_PIN_2, LOW);
+        delayMicroseconds(2);
+        digitalWrite(TRG_PIN_2, HIGH);
+        delayMicroseconds(10);
+        digitalWrite(TRG_PIN_2, LOW);
+        trig_flag_2 = 1;
+        lastTrigTime_2 = millis();
+      }
+
+
+
+      // Process echo sensor 2 (object)
+      if (echo_flag_2) {
+        Serial.println("Echo2");
+        duration_2 = echoEnd_2 - echoStart_2;
+        distance_2 = 0.0343 * (duration_2 / 2);
+        echo_flag_2 = 0;
+        trig_flag_2 = 0;
+      }
+
+      // Timeout for sensor 2
+      if (trig_flag_2 && (millis() - lastTrigTime_2 >= echoTimeout)) {
+        Serial.println("Sensor2 timeout");
+        trig_flag_2 = 0;
+        echo_flag_2 = 0;
+      }
       if (distance_2 < 5) {
         Serial.println("Object placed, returning");
-        delay(1000);
+        delay(8000);
         moveBackward();
         returnStart = millis();  // Start return timer
         cartState = RETURNING;
@@ -211,7 +233,9 @@ void loop() {
       break;
   }
 
-  delay(100); // Reduce loop frequency
+  delay(10); // Reduce loop frequency
+
+  client.write("Arduin");
 }
 
 // -----------------
