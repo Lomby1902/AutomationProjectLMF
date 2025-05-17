@@ -17,10 +17,10 @@ Servo motor1;
 Servo motor2;
 
 // Sensor pins
-#define TRG_PIN_1 7
-#define TRG_PIN_2 8
-#define ECHO_PIN_1 2
-#define ECHO_PIN_2 3
+#define TRG_PIN_1 2
+#define TRG_PIN_2 5
+#define ECHO_PIN_1 3
+#define ECHO_PIN_2 6
 
 // Flags and timing for sensors
 volatile uint8_t trig_flag_1 = 0;
@@ -82,8 +82,8 @@ void setup() {
   while (!Serial);
 
   // Motor pins
-  motor1.attach(5);
-  motor2.attach(6);
+  motor1.attach(9);
+  motor2.attach(10);
 
   // Sensor pin modes
   pinMode(TRG_PIN_1, OUTPUT);
@@ -172,7 +172,7 @@ void loop() {
       }
 
 
-      if (distance_1 < 5) {
+      if (distance_1 < 3) {
           Serial.println("Arrived to target");
           client.write("Target");
           stopMotors();
@@ -243,7 +243,7 @@ void loop() {
 
 void moveForward() {
   motor1.write(70);   // Calibrate this if needed
-  motor2.write(110);
+  motor2.write(150);
 }
 
 void moveBackward() {
@@ -252,6 +252,6 @@ void moveBackward() {
 }
 
 void stopMotors() {
-  motor1.write(90);   // Use calibrated stop value if necessary
-  motor2.write(90);
+  motor1.write(92);   // Use calibrated stop value if necessary
+  motor2.write(92);
 }
