@@ -7,7 +7,7 @@ char ssid[] = "Zancle E-Drive";
 char pass[] = "7EC446D837";
 
 // Server info
-char server[] = "192.168.209.122";  // IP of PC/server
+char server[] = "192.168.218.122";  // IP of PC/server
 int port = 5001;
 
 WiFiClient client;
@@ -218,7 +218,7 @@ void loop() {
       break;
 
     case RETURNING:
-      if (millis() - returnStart >= 2000) {
+      if (millis() - returnStart >= 5000) {
         Serial.println("Return complete. Stopping.");
         stopMotors();
         digitalWrite(LED_BUILTIN, LOW);
@@ -243,7 +243,7 @@ void loop() {
 
 void moveForward() {
   motor1.write(70);   // Calibrate this if needed
-  motor2.write(150);
+  motor2.write(110);
 }
 
 void moveBackward() {
@@ -252,6 +252,6 @@ void moveBackward() {
 }
 
 void stopMotors() {
-  motor1.write(92);   // Use calibrated stop value if necessary
+  motor1.write(90);   // Use calibrated stop value if necessary
   motor2.write(92);
 }
