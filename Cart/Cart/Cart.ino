@@ -162,6 +162,12 @@ void loop() {
         distance_1 = 0.0343 * (duration_1 / 2);
         echo_flag_1 = 0;
         trig_flag_1 = 0;
+        if (distance_1 < 5) {
+          Serial.println("Arrived to target");
+          client.write("Target");
+          stopMotors();
+          cartState = WAITING_FOR_OBJECT;
+        }
       }
 
       // Timeout for sensor 1
@@ -172,12 +178,7 @@ void loop() {
       }
 
 
-      if (distance_1 < 3) {
-          Serial.println("Arrived to target");
-          client.write("Target");
-          stopMotors();
-          cartState = WAITING_FOR_OBJECT;
-        }
+     
       break;
 
     case WAITING_FOR_OBJECT:
@@ -200,6 +201,13 @@ void loop() {
         distance_2 = 0.0343 * (duration_2 / 2);
         echo_flag_2 = 0;
         trig_flag_2 = 0;
+        if (distance_2 < 5) {
+        Serial.println("Object placed, returning");
+        delay(8000);
+        moveBackward();
+        returnStart = millis();  // Start return timer
+        cartState = RETURNING;
+      }
       }
 
       // Timeout for sensor 2
@@ -208,17 +216,11 @@ void loop() {
         trig_flag_2 = 0;
         echo_flag_2 = 0;
       }
-      if (distance_2 < 5) {
-        Serial.println("Object placed, returning");
-        delay(8000);
-        moveBackward();
-        returnStart = millis();  // Start return timer
-        cartState = RETURNING;
-      }
+      
       break;
 
     case RETURNING:
-      if (millis() - returnStart >= 5000) {
+      if (millis() - returnStart >= 2000) {
         Serial.println("Return complete. Stopping.");
         stopMotors();
         digitalWrite(LED_BUILTIN, LOW);
