@@ -72,7 +72,7 @@ The cell performs automated pick-and-place operations controlled by a PLC, with 
 ├── docs/                    # Project report, schematics, etc.
 ├── tiaportal                # TIA Portal project
 └── README.md                # You're here
-
+```
 ---
 
 ## 🔧 Installation
