@@ -1,4 +1,4 @@
-# Robotic Arm Material Handling System
+# Robotic Arm Project
 
 > Final project for Industrial Automation and Robotics - Module B  
 > **University of Messina - Department of Engineering**  
