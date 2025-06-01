@@ -109,11 +109,13 @@ Make sure ports `2001` and `5001` are open.
 
 ```plaintext
 .
-├── Cart.ino                  # Arduino firmware
+├── Cart                # Arduino firmware
+    ├── Cart.ino
 ├── main.py                  # TCP bridge Python server
-├── plc/                     # Ladder logic project (TIA Portal)
-├── simulation/              # CoppeliaSim scenes and scripts
+├── Coppelia/                # CoppeliaSim scenes and scripts
+    ├── project.ttt
 ├── docs/                    # Project report, schematics, etc.
+├── 
 └── README.md                # You're here
 ```
 
