@@ -60,6 +60,19 @@ The cell performs automated pick-and-place operations controlled by a PLC, with 
    [Conveyor + Robot Arm] 
 ```
 
+## 📁 Repository Structure
+
+```plaintext
+.
+├── Cart                # Arduino firmware
+    ├── Cart.ino
+├── main.py                  # TCP bridge Python server
+├── Coppelia/                # CoppeliaSim scenes and scripts
+    ├── project.ttt
+├── docs/                    # Project report, schematics, etc.
+├── tiaportal                # TIA Portal project
+└── README.md                # You're here
+
 ---
 
 ## 🔧 Installation
@@ -89,36 +102,7 @@ Make sure ports `2001` and `5001` are open.
 
 ---
 
-## 🐞 Known Issues
 
-- Encoder readings occasionally unstable
-- PLC TCP data structures not preserved between runs
-- Some IK constraints in CoppeliaSim may fail with large motion ranges
-
----
-
-## 📌 Future Work
-
-- Improve robustness of Wi-Fi communication
-- Implement visual detection instead of fixed sensors
-- Expand to multiple carts and parallel arms
-- Integrate HMI or SCADA interface
-
----
-
-## 📁 Repository Structure
-
-```plaintext
-.
-├── Cart                # Arduino firmware
-    ├── Cart.ino
-├── main.py                  # TCP bridge Python server
-├── Coppelia/                # CoppeliaSim scenes and scripts
-    ├── project.ttt
-├── docs/                    # Project report, schematics, etc.
-├── tiaportaò                # TIA Portal project
-└── README.md                # You're here
-```
 
 ---
 
