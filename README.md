@@ -115,7 +115,7 @@ Make sure ports `2001` and `5001` are open.
 ├── Coppelia/                # CoppeliaSim scenes and scripts
     ├── project.ttt
 ├── docs/                    # Project report, schematics, etc.
-├── 
+├── tiaportaò                # TIA Portal project
 └── README.md                # You're here
 ```
 
