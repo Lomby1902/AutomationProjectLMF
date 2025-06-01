@@ -39,7 +39,7 @@ The cell performs automated pick-and-place operations controlled by a PLC, with 
 ---
 
 ## ⚙️ Functional Description
-
+![Demo of the real system](media/real.gif)
 
 ### Control Flow
 
