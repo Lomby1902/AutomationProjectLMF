@@ -82,6 +82,7 @@ python main.py
 Make sure ports `2001` and `5001` are open.
 
 ### 4. CoppeliaSim
+![Demo of the simulation](media/coppelia.gif)
 - Load `.ttt` scene
 - Run the simulation to see the full cell operation
 - Scripts handle full robot behavior with inverse kinematics
