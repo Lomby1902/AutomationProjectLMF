@@ -56,8 +56,8 @@ The cell performs automated pick-and-place operations controlled by a PLC, with 
 
 ```plaintext
 [PLC] ←Ethernet→ [Laptop Bridge Server] ←WiFi→ [Arduino Cart]
-        ↑                    
-   [Conveyor + Robot Arm] 
+  ↕                 
+[Conveyor + Robot Arm] 
 ```
 
 ## 📁 Repository Structure
@@ -78,9 +78,10 @@ The cell performs automated pick-and-place operations controlled by a PLC, with 
 ## 🔧 Installation
 
 ### 1. TIA Portal (Ladder Program)
-- Open the `.ap11` project (if available)
+- Open the `.ap16` project
 - Flash to S7-1200
 - Ensure I/O matches wiring diagram
+- Ensure IP address of python server is correctly set in TIA Portal
 
 ### 2. Arduino Cart
 - Flash `Cart.ino` to Arduino UNO WiFi
